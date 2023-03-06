@@ -27,4 +27,4 @@ For running this part, please, type the following command, selecting the dataset
 
 For instance, after running the python's file __experimentPreparation.py__ for the dataset aedessex, a quantifier such as SMM with 10 iterations and using calibrated scores and models, the following command must be typed:
 
-> python experimentRunner.py aedessex SMM  --it=10
+> python experimentRunner.py aedessex SMM  --it=10 True

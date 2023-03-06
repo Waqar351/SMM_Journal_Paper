@@ -167,6 +167,7 @@ if __name__ == "__main__":
   parser.add_argument('exp', type=str)
   parser.add_argument('method', type=str)
   parser.add_argument('--it', type=int, default=10)
-  parser.add_argument('cal', type=bool)
+  parser.add_argument('cal', type=str)
+  
   args = parser.parse_args()
   experimentRunner(dataset=args.exp, method_name=args.method, niterations=args.it, calibrated=args.cal)
