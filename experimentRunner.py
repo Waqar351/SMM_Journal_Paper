@@ -7,6 +7,7 @@ import argparse
 from utils.methodlist import methods
 import sys
 from utils.applyquantifiers import apply_quantifier
+from utils.fCalculate_MRAE import fCalculateRAE
 
 import quapy as qp
 import os
@@ -74,23 +75,28 @@ def experimentRunner(dataset, method_name, niterations = 10, calibrated = False,
                                metric_params=None, n_jobs=None)
 
                     external_qnt = clf_pwk.fit(tr.drop(["class","Binary_label"], axis=1), tr['Binary_label'])
+                    print('Method Name is PWK')
                 else:
-                    external_qnt = pickle.load(open(folder +'/'+method_name+'_model_%s' % dataset +'_%f'%train_prop + '.pkl', 'rb')) 
+                    external_qnt = pickle.load(open(folder +'/'+method_name+'_model_%s' % dataset +'_%f'%train_prop + '.pkl', 'rb'))
+                    print('Schumarcher methods are Running')
             else:
-                if calibrated:
+                if calibrated == 'True':
                     tprfpr = pd.read_csv(folder + '/calibrated_tprfpr_%s'% dataset + '_%f'%train_prop + '.csv', index_col = False, engine='python')
                     scores = pd.read_csv(folder +'/calibrated_scores_training_%s' % dataset + '_%f'%train_prop +'.csv', index_col=False, engine='python')
-                    clf = pickle.load(open(folder +'/calibrated_model_%s' % dataset +'_%f'%train_prop + '.pkl', 'rb')) 
+                    clf = pickle.load(open(folder +'/calibrated_model_%s' % dataset +'_%f'%train_prop + '.pkl', 'rb'))
+                    print('Calibrated methods are running FM, GAC and GPAC')
                 else:
                     tprfpr = pd.read_csv(folder + '/tprfpr_%s'% dataset + '_%f'%train_prop + '.csv', index_col = False, engine='python')                
                     scores = pd.read_csv(folder +'/scores_training_%s' % dataset + '_%f'%train_prop +'.csv', index_col=False, engine='python')
                     clf = pickle.load(open(folder +'/model_%s' % dataset +'_%f'%train_prop + '.pkl', 'rb'))
+                    print('Our Implemented methods are running')
                 
                 pos_scores = scores[scores["class"]==1]["scores"]   #separating positve scores from training scores  
                 neg_scores = scores[scores["class"]==0]["scores"]           
             
             df_test = pd.DataFrame(te)
             print('test_lenght',len(df_test))
+            print(clf)
             
             df_test_pos = df_test.loc[df_test["Binary_label"] == 1] # seperating positive test examples
             df_test_neg = df_test.loc[df_test["Binary_label"] == 0] # seperating negative test examples
@@ -125,10 +131,12 @@ def experimentRunner(dataset, method_name, niterations = 10, calibrated = False,
                         te_scores = None
                         if method_name not in external_quantifiers:
                             te_scores = clf.predict_proba(test_sample)[:,1]  #estimating test sample scores
+                            print('Estimating test scores for our methods')
 
                         #..............Test Sample QUAPY exp...........................
                         if method_name == 'EMQ':
-                            te_quapy = qp.data.LabelledCollection(sample_test.drop(["class","Binary_label"], axis=1), test_label)                        
+                            te_quapy = qp.data.LabelledCollection(sample_test.drop(["class","Binary_label"], axis=1), test_label)
+                            print('Estimating test scores for QUAPY EMQ')                        
 
                         n_pos_sample_test = list(test_label).count(1) #Counting num of actual positives in test sample
                         calcultd_pos_prop = round(n_pos_sample_test/len(sample_test), 2) #actual pos class prevalence in generated sample
@@ -148,15 +156,15 @@ def experimentRunner(dataset, method_name, niterations = 10, calibrated = False,
                                                         test_quapy = te_quapy, 
                                                         external_qnt = external_qnt)                        
 
-                        pred_pos_prop = np.round(pred_pos_prop,2)  #predicted class proportion                        
+                        pred_pos_prop = np.round(pred_pos_prop,2)  #predicted class proportion
                         #..............................RESULTS Evaluation.....................................                        
                         abs_error = np.round(abs(calcultd_pos_prop - pred_pos_prop),2) #absolute error
                         error = np.round(calcultd_pos_prop - pred_pos_prop , 2)     # simple error Biasness
                         ms_per_example = -1 #(tm_end - tm_start) * 1000 / len(sample_test) #time calculation
                         
-                        table = table.append(pd.DataFrame([(train_sample+1),train_prop,(iter + 1),sample_size,alpha,calcultd_pos_prop,pred_pos_prop,abs_error,error,ms_per_example,method_name,dataset]).T)
+                        table = table.append(pd.DataFrame([(train_sample+1),train_prop,(iter + 1),sample_size,alpha,calcultd_pos_prop,pred_pos_prop,abs_error,error,fCalculateRAE(abs_error,calcultd_pos_prop),ms_per_example,method_name,dataset]).T)
 
-            table.columns = ["Train_sample","Train_prop","Test_sample#","Test_size","alpha","actual_prop","pred_prop","abs_error","error/bias","time","quantifier","dataset"]
+            table.columns = ["Train_sample","Train_prop","Test_sample#","Test_size","alpha","actual_prop","pred_prop","abs_error","error/bias","relative_error","time","quantifier","dataset"]
             table2 = table2.append(table)
             
    table2.to_csv(result_path +'/' + dataset + '_%s' % method_name + '.csv', index = False)
@@ -168,6 +176,5 @@ if __name__ == "__main__":
   parser.add_argument('method', type=str)
   parser.add_argument('--it', type=int, default=10)
   parser.add_argument('cal', type=str)
-  
   args = parser.parse_args()
   experimentRunner(dataset=args.exp, method_name=args.method, niterations=args.it, calibrated=args.cal)
