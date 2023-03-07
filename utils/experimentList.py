@@ -140,7 +140,7 @@ Experiments = {
     "output_tprfpr": "models_train_test/handwritten/tprfpr_handwritten.csv",
 
     "class_feature": "class",
-    "positive_label": "1",
+    "positive_label": 1,
     "negative_labels": None, # all other labels
     "features": lambda x: x != 'letter' and x != 'author',
   },
